@@ -1,3 +1,6 @@
+"""
+Надо бы написать доку
+"""
 import sys
 import glob
 
