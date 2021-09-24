@@ -3,9 +3,9 @@ import glob
 
 from pyparsing import (Word, alphas, alphanums, Regex, Suppress, Forward,
     Group, oneOf, ZeroOrMore, Optional, delimitedList, Keyword,
-    restOfLine, quotedString, Dict)
+    restOfLine, quotedString, Dict, OneOrMore)
 
-ident = Word(alphas+"_", alphanums+"_").setName("identifier")
+ident = Word(alphas + "_", alphanums + "_").setName("identifier")
 integer = Regex(r"[+-]?\d+")
 
 LBRACE = Suppress('{')
@@ -38,6 +38,7 @@ IMPORT_ = Keyword('import')
 SYNTAX_ = Keyword('syntax')
 BODY_ = Keyword('body')
 MAP_ = Keyword('map')
+JSON_NAME_ = Keyword('json_name')
 
 messageBody = Forward()
 
@@ -46,12 +47,17 @@ mapSpec = '<' + oneOf('''int64 string''') + ',' + ident + '>'
 typespec = oneOf("""double float int32 int64 uint32 uint64 sint32 sint64
                     fixed32 fixed64 sfixed32 sfixed64 bool string bytes
                     google.protobuf.Timestamp google.protobuf.Int32Value
-                    google.protobuf.Int64Value""") | ident | mapSpec
+                    google.protobuf.Int64Value google.protobuf.BoolValue""") | ident | mapSpec
 
-rvalue = integer | TRUE_ | FALSE_ | ident
-fieldDirective = (
-    LBRACK
-    + ZeroOrMore(Group(
+
+
+# типа того {gt: 0, lte: 2000000}
+value_in_figures = LBRACE + ident + COLON + integer + ',' + ident + COLON + integer + RBRACE
+rvalue = integer | TRUE_ | FALSE_ | ident | value_in_figures
+
+# Директива типа вот такой = (validate.rules).repeated.unique = true, Может быть
+# больше одного через запятую
+fieldDirectiveFirst = (
         LPAR
         + delimitedList(ident, '.', combine=True)
         + RPAR
@@ -60,10 +66,26 @@ fieldDirective = (
         + EQ
         + rvalue
         + Optional(',')
-    ))
+    )
+
+# Директива типа вот тако = json_name="item_id"
+fieldDirectiveSecond = (
+    JSON_NAME_
+    + EQ
+    + quotedString
+    + Optional(',')
+    )
+
+directive_type = fieldDirectiveFirst | fieldDirectiveSecond
+
+fieldDirective = (
+    LBRACK
+    + ZeroOrMore(directive_type)
     + RBRACK
 )
+
 fieldDefnPrefix = REQUIRED_ | OPTIONAL_ | REPEATED_ | MAP_
+
 fieldDefn = (
     Optional(fieldDefnPrefix)
     + typespec("typespec")
@@ -98,9 +120,11 @@ optionBody = (
     + COLON
     + quotedString("endpointString")
     + Optional(',')
-    + BODY_
-    + COLON
-    + quotedString()
+    + Optional(
+        BODY_
+        + COLON
+        + quotedString('*')
+    )
 )
 
 optionDefn = (
@@ -130,19 +154,19 @@ methodDefn = (
         + Group(optionDefn)('option')
         + RBRACE
     )
-    + SEMI
+    + Optional(SEMI)
 )
 
 serviceDefn = (
     SERVICE_
-    - ident.setResultsName('serviceName', listAllMatches=True)
+    - ident.setResultsName('serviceName')
     + LBRACE
-    + ZeroOrMore(Group(methodDefn))('method')
+    + ZeroOrMore(Group(methodDefn))('serviceMethods')
     + RBRACE
 )
 
 packageDirective = (
-    PACKAGE_ - delimitedList(ident, '.', combine=True) + SEMI
+    PACKAGE_ - delimitedList(ident, '.', combine=True)('PackageString') + SEMI
 )
 
 comment = '//' + restOfLine
@@ -174,74 +198,79 @@ parser = ZeroOrMore(topLevelStatement)
 
 parser.ignore(comment)
 
-test4 = """
+test_debugging = """
 syntax = "proto3";
+
+package ozon.whc.go.api.supplier_portal.supplier_api;
+
+option go_package = "gitlab.ozon.ru/whc/go/api/supplier-portal/pkg/supplier-api";
 
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
+import "github.com/envoyproxy/protoc-gen-validate/validate/validate.proto";
 
-package ozon.gdz.transfers.warehouse_reserves;
-
-option csharp_namespace = "Ozon.Gdz.Transfers.Contracts.WarehouseReserves";
-
-service TimeSlotsService {
-  rpc GetAvailable(GetAvailableRequest) returns (GetAvailableResponse) {
-    option (google.api.http) = {
-      post: "/v1/timeslots/available",
-      body: "*"
+service SupplierAPI {
+    rpc GetSupplyInfo (GetSupplyInfoRequest) returns (GetSupplyInfoResponse) {
+        option (google.api.http) = {
+            post: "/v1/supplier/supply-info"
+            body: "*"
+        };
     };
-  };
-  rpc Reserve(ReserveRequest) returns (ReserveResponse) {
-    option (google.api.http) = {
-      post: "/v1/timeslots/reserve",
-      body: "*"
-    };
-  };
 }
 
-message GetAvailableRequest {
-  int64 transfer_id = 1;
-  google.protobuf.Timestamp from = 2;
-  google.protobuf.Timestamp to = 3;
-}
-message GetAvailableResponse {
-  message TimeSlot {
-    google.protobuf.Timestamp from=1;
-    google.protobuf.Timestamp to=2;
-  }
-
-  repeated TimeSlot timeslots=1;
+message GetSupplyInfoRequest {
+    repeated int64 supply_ids = 1 [(validate.rules).repeated.unique = true, (validate.rules).repeated.items.int64.gt = 0];
 }
 
-message ReserveRequest {
-  int64 transfer_id = 1;
-  google.protobuf.Timestamp timeslot_from = 2;
-  google.protobuf.Timestamp timeslot_to = 3;
-}
-message ReserveResponse {
-  string timeslot_id = 1;
+message GetSupplyInfoResponse {
+    map<int64, Supply> supply_map = 1;
+
+    message Supply {
+        int64 supply_id = 1;
+        int64 supplier_id = 2;
+        string supplier_name = 3;
+        DocType type = 4;
+        Document document = 5;
+        repeated Item items = 6;
+
+        message Document {
+            string number = 2;
+            google.protobuf.Timestamp date = 3;
+        }
+
+        message Item {
+            int64 id = 1;
+            int64 quantity = 2;
+        }
+    }
 }
 
+enum DocType {
+    UNDEFINED = 0;
+    WITH_DOCS = 1;
+    WITHOUT_MARKING = 2;
+    WITH_MARKING = 3;
+}
 """
-parser.runTests([test4])
+#parser.runTests([test_debugging])
 
 def imports_init(proto_name):
     imports = f"""from ozwhc.grpc_clients import BaseGrpc
-from . import {proto_name}_pb2, {proto_name}_pb2_grpc
+import {proto_name}_pb2, {proto_name}_pb2_grpc
 
 """
     return imports
 
 def class_init(proto_name, service_name):
     class_name = f"""
-class SupplierPortalSupplier(BaseGrpc):
+class {service_name}(BaseGrpc):
     grpc_stub = {protofile_name}_pb2_grpc.{service_name}Stub
 """
     return class_name
 
 def change_method_name(name):
-    func_method_name = name.methodName[0].lower()
-    for i in name.methodName[1:]:
+    func_method_name = name['methodName'][0].lower()
+    for i in name['methodName'][1:]:
         if i.isupper():
             func_method_name += f'_{i.lower()}'
         else:
@@ -255,7 +284,7 @@ def methods_init(all_methods):
         method_name = change_method_name(method)
         methods += f"""
     def {method_name}(self, request, **kwargs):
-        return self._grpc_request(request=request, request_method=self.stub.{method.methodName}, **kwargs)
+        return self._grpc_request(request=request, request_method=self.stub.{method['methodName']}, **kwargs)
 
 """
     return methods
@@ -268,12 +297,17 @@ def create_init_file(proto_name, service_name, methods):
     with open("__init__.py", "w") as file:
         file.write(init_body)
 
-#if __name__ == "__main__":
 
-#    with open(sys.argv[1], 'r') as my_file:
-#        proto_body = my_file.read().replace('\n', '')
-#        result = parser.parseString(proto_body)
-#        protofile_name = glob.glob("*.proto")[0][:-6]
-#        service_name = result[6].serviceName[0]
-#        methods = result[6].method
-#        create_init_file(protofile_name, service_name, methods)
+if __name__ == "__main__":
+
+    with open(sys.argv[1], 'r') as my_file:
+        proto_body = my_file.read().replace('\n', '')
+        result = parser.parseString(proto_body)
+        protofile_name = glob.glob("*.proto")[0][:-6]
+        for i in result:
+            i_as_dict = i.asDict()
+            if 'serviceName' in i_as_dict:
+                service_name = i_as_dict['serviceName']
+                if 'serviceMethods' in i_as_dict:
+                    methods = i_as_dict['serviceMethods']
+        create_init_file(protofile_name, service_name, methods)
