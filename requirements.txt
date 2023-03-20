@@ -1,0 +1,4 @@
+grpcio==1.40.0
+protobuf==3.18.0
+pyparsing==2.4.7
+six==1.16.0
