@@ -79,7 +79,7 @@ class Parser:
                 + RPAR
         )
         method_defn.ignore(COMMENT)
-        result_of_parsing = method_defn.searchString(self.proto_file)
+        result_of_parsing = method_defn.search_string(self.proto_file)
 
         return result_of_parsing
 
@@ -89,9 +89,6 @@ if __name__ == '__main__':
         proto_body = my_file.read()
         parser = Parser(proto_body)
         result = parser.parsing_service_handles()
-        print('!!!', type(result))
         print('!!!', result)
-        for i in result:
-            print(i.as_dict())
 
 
