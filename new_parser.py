@@ -2,8 +2,7 @@ import sys
 
 from pyparsing import Word, alphas, alphanums, Regex, Suppress, Optional, \
     delimited_list, Keyword, restOfLine, quoted_string, ParseResults, \
-    Literal, LineStart
-
+    Literal, LineStart, ZeroOrMore, Group
 
 ident = Word(alphas + "_", alphanums + "_").setName("identifier")
 integer = Regex(r"[+-]?\d+")
@@ -69,7 +68,7 @@ class Parser:
         """ Парсим всю директиву service. """
         method_defn = (
                 RPC_
-                - ident("methodName")
+                + ident("methodName")
                 + LPAR
                 + (Optional(STREAM_)('stream') + delimited_list(ident, '.', combine=True)("Request"))
                 + RPAR
