@@ -20,11 +20,15 @@ IMPORT_ = Keyword('import')
 COMMENT = '//' + restOfLine
 
 
-class IParser(ABC):
+class ProtoReader:
 
-    def parse(self, parser_definition: ParserElement, proto_body: str):
-        parser_definition.ignore(COMMENT)
-        return parser_definition.search_string(proto_body)
+    def read_proto(self, path_to_proto: str):
+        with open(path_to_proto, 'r') as my_proto:
+            proto_body = my_proto.read()
+        return proto_body
+
+
+class IParser(ABC):
 
     @abstractmethod
     def package_directive(self):
@@ -42,11 +46,15 @@ class IParser(ABC):
     def service_handlers(self):
         pass
 
+    def parse(self, parser_definition: ParserElement, proto_body: str):
+        parser_definition.ignore(COMMENT)
+        return parser_definition.search_string(proto_body)
 
-class Parser(IParser):
 
-    def __init__(self, proto_body: str):
-        self.proto_body: str = proto_body
+class Parser(IParser, ProtoReader):
+
+    def __init__(self, path_to_proto: str):
+        self.proto_body = self.read_proto(path_to_proto)
 
     def package_directive(self) -> ParseResults:
         """ Парсим директиву package. """
@@ -117,13 +125,12 @@ class ParsedData:
 
 
 if __name__ == '__main__':
-    with open(sys.argv[1], 'r') as my_file:
-        proto_body = my_file.read()
-        parser = Parser(proto_body)
-        parsed_data = ParsedData(parser)
-        print(parsed_data.service_name)
-        print(parsed_data.package)
-        print(parsed_data.imports)
-        print(parsed_data.handlers)
+    proto_path = sys.argv[1]
+    parser = Parser(proto_path)
+    parsed_data = ParsedData(parser)
+    print(parsed_data.service_name)
+    print(parsed_data.package)
+    print(parsed_data.imports)
+    print(parsed_data.handlers)
 
 
