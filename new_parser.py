@@ -56,7 +56,7 @@ class Parser(IParser):
                 + SEMI
         )
         if result_of_parsing := self.parse(package_directive, self.proto_body):
-            return result_of_parsing[0].as_dict()['PackageString']
+            return result_of_parsing[0]['PackageString']
         return result_of_parsing
 
     def import_directives(self) -> ParseResults:
@@ -73,7 +73,7 @@ class Parser(IParser):
                 - IDENT('serviceName')
         )
         if result_of_parsing := self.parse(service_name, self.proto_body):
-            return result_of_parsing[0].as_dict()['serviceName']
+            return result_of_parsing[0]['serviceName']
         return result_of_parsing
 
     def service_handlers(self) -> ParseResults:
