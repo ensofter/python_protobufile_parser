@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package ozon.whc.api.supply.direct.v1;
+
+option go_package = "gitlab.ozon.ru/whc/go/api/supply/pkg/api/supply/direct/v1;v1";
+option csharp_namespace = "Ozon.Whc.Go.Api.Supply.Direct.v1";
+
+import "github.com/envoyproxy/protoc-gen-validate/validate/validate.proto";
+import "gitlab.ozon.ru/whc/go/api/supply/api/constants/constants.proto";
+import "google/protobuf/wrappers.proto";
+
+service DirectSupply {
+    // Получить список причин для отказа в отгрузке поставки
+    // Response Codes - 0
+    rpc V1GetUnloadRejectionReasons (V1GetUnloadRejectionReasonsRequest) returns (V1GetUnloadRejectionReasonsResponse);
+    // Получить причину для отказа в отгрузке поставки
+    // Response Codes - 0, 3, 5
+    rpc V1GetUnloadRejectionReason (V1GetUnloadRejectionReasonRequest) returns (V1GetUnloadRejectionReasonResponse);
+    // Получить список комментариев для приемки ГМ
+    // Response Codes - 0
+    rpc V1GetUnloadCargoComments (V1GetUnloadCargoCommentsRequest) returns (V1GetUnloadCargoCommentsResponse);
+    // Получить комментарий для приемки ГМ
+    // Response Codes - 0, 3, 5
+    rpc V1GetUnloadCargoComment (V1GetUnloadCargoCommentRequest) returns (V1GetUnloadCargoCommentResponse);
+}
+
+// ---------- V1GetUnloadRejectionReasons --------------
+
+message V1GetUnloadRejectionReasonsRequest{
+    Filter filter = 1;
+
+    message Filter {
+        // фильтрует причины отказа в выгрузке, по умолчанию - возвращается все
+        RejectionReasonsFor reasons_for = 1;
+
+        // включить в результат удаленные причины отказа в выгрузке
+        bool include_deleted = 2;
+
+        // отфильтровать по идентификаторам
+        repeated int64 reason_ids = 3 [(validate.rules).repeated = { unique: true, ignore_empty: true, items: { int64: { gte: 1 } } }];
+
+        message RejectionReasonsFor {
+            bool supply = 1;
+            bool cargos = 2;
+        }
+    }
+}
+
+message V1GetUnloadRejectionReasonsResponse {
+    repeated RejectionReason rejection_reasons = 1;
+
+    message RejectionReason {
+        int32 id = 1;
+        string text = 2;
+        bool can_edit = 3;
+        bool is_deleted = 4;
+        EnabledFor options = 5;
+
+        message EnabledFor {
+            bool supply = 1;
+            bool cargo = 2;
+        }
+    }
+}
+// ---------- V1GetUnloadRejectionReason --------------
+
+message V1GetUnloadRejectionReasonRequest{
+    int64 id = 1 [(validate.rules).int64.gt = 0];
+}
+
+message V1GetUnloadRejectionReasonResponse {
+    int32 id = 1;
+    string text = 2;
+    bool can_edit = 3;
+    bool is_deleted = 4;
+    EnabledFor options = 5;
+
+    message EnabledFor {
+        bool supply = 1;
+        bool cargo = 2;
+    }
+}
+
+
+// ---------- V1GetUnloadCargoComments --------------
+
+message V1GetUnloadCargoCommentsRequest{
+    Filter filter = 1;
+
+    message Filter {
+        // включить в результат удаленные комментарии для приемки ГМ
+        bool include_deleted = 1;
+    }
+}
+
+message V1GetUnloadCargoCommentsResponse {
+    repeated Comment comments = 1;
+
+    message Comment {
+        int32 id = 1;
+        string text = 2;
+        bool can_edit = 3;
+        bool is_deleted = 4;
+    }
+}
+// ---------- V1GetUnloadCargoComment --------------
+
+message V1GetUnloadCargoCommentRequest{
+    int64 id = 1 [(validate.rules).int64.gt = 0];
+}
+
+message V1GetUnloadCargoCommentResponse {
+    int32 id = 1;
+    string text = 2;
+    bool can_edit = 3;
+    bool is_deleted = 4;
+}

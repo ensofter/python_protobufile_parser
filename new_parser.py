@@ -92,17 +92,38 @@ class Parser(IParser):
         return self.parse(method_defn, self.proto_body)
 
 
+class ParsedData:
+    def __init__(self, parser: IParser):
+        self._service_name: ParseResults = parser.service_name()
+        self._package: ParseResults = parser.package_directive()
+        self._imports: ParseResults = parser.import_directives()
+        self._handlers: ParseResults = parser.service_handlers()
+
+    @property
+    def service_name(self):
+        return self._service_name
+
+    @property
+    def package(self):
+        return self._package
+
+    @property
+    def imports(self):
+        return self._imports
+
+    @property
+    def handlers(self):
+        return self._handlers
+
+
 if __name__ == '__main__':
     with open(sys.argv[1], 'r') as my_file:
         proto_body = my_file.read()
         parser = Parser(proto_body)
-        result = parser.package_directive()
-        print('!!!', result)
-        result = parser.import_directives()
-        print('!!!', result)
-        result = parser.service_name()
-        print('!!!', result)
-        result = parser.service_handlers()
-        print('!!!', result)
+        parsed_data = ParsedData(parser)
+        print(parsed_data.service_name)
+        print(parsed_data.package)
+        print(parsed_data.imports)
+        print(parsed_data.handlers)
 
 

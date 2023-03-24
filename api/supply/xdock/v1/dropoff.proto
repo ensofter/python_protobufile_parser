@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package ozon.whc.api.supply.xdock.v1;
+
+option go_package = "gitlab.ozon.ru/whc/go/api/supply/pkg/api/supply/xdock/v1;v1";
+option csharp_namespace = "Ozon.Whc.Go.Api.Supply.XDock.v1";
+
+import "github.com/envoyproxy/protoc-gen-validate/validate/validate.proto";
+import "gitlab.ozon.ru/whc/go/api/supply/api/constants/constants.proto";
+
+// service is deprecated actual file in gitlab.ozon.ru/whc/go/api/supply/pkg/api/xdock/dropoff
+service Dropoff {
+    // Валидация поставки для начала отгрузки
+    // Response Codes - 0, 3, 9, 5
+    rpc V1ValidateSupplyToUnload (V1ValidateSupplyToUnloadRequest) returns (V1ValidateSupplyToUnloadResponse) {
+        option deprecated = true;
+    };
+    // Завершить отгрузку поставки
+    // Response Codes - 0, 3, 9, 5
+    rpc V1FinishUnloading (V1FinishUnloadingRequest) returns (V1FinishUnloadingResponse){
+        option deprecated = true;
+    };
+    // Получить список причин для отказа в отгрузке поставки
+    // Response Codes - 0
+    rpc V1GetUnloadRejectionReasons (V1GetUnloadRejectionRequest) returns (V1GetUnloadRejectionResponse){
+        option deprecated = true;
+    };
+    // Отказать в отгрузке поставки
+    // Response Codes - 0, 9, 3, 5
+    rpc V1DeclineUnloading (V1DeclineUnloadingRequest) returns (V1DeclineUnloadingResponse){
+        option deprecated = true;
+    };
+}// Приемка поставки на дропоффе
+
+// ---------- V1ValidateSupplyToUnload --------------
+
+message V1ValidateSupplyToUnloadRequest {
+    int64 supply_id = 1 [(validate.rules).int64.gt = 0];
+    int64 warehouse_id = 2 [(validate.rules).int64.gt = 0];
+}
+
+message V1ValidateSupplyToUnloadResponse {
+    repeated Cargo cargos = 1;
+
+    message Cargo {
+        int64 id = 1;
+        string barcode = 2;
+        supply_constants.CargoType.Enum type = 3;
+    }
+}
+
+// ---------- V1FinishUnloading --------------
+
+message V1FinishUnloadingRequest {
+    int64 supply_id = 1 [(validate.rules).int64.gt = 0];
+    int64 warehouse_id = 2 [(validate.rules).int64.gt = 0];
+    repeated int64 cargo_ids = 3 [(validate.rules).repeated = {unique: true, min_items: 1, items: {int64: {gt: 0}}}];
+    string user_name = 4 [(validate.rules).string.min_len = 1];
+}
+
+message V1FinishUnloadingResponse{}
+
+// ---------- V1GetUnloadRejectionReasons --------------
+
+message V1GetUnloadRejectionRequest{}
+
+message V1GetUnloadRejectionResponse {
+    repeated RejectionReason rejection_reasons = 1;
+
+    message RejectionReason {
+        int32 id = 1;
+        string description = 2;
+    }
+}
+
+// ---------- V1DeclineUnloading --------------
+
+message V1DeclineUnloadingRequest {
+    int64 supply_id = 1 [(validate.rules).int64.gt = 0];
+    int64 warehouse_id = 2 [(validate.rules).int64.gt = 0];
+    int32 rejection_reason_id = 3 [(validate.rules).int32.gt = 0];
+    string user_name = 4 [(validate.rules).string.min_len = 1];
+}
+
+message V1DeclineUnloadingResponse{
+
+}
