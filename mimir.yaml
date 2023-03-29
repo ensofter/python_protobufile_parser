@@ -1,0 +1,18 @@
+version: v2
+language: golang
+project_repo: gitlab.ozon.ru/whc/go/api/supply
+proto_paths:
+    - api
+pkg_proto_paths:
+    - api
+ignore_dirs:
+    - vendor
+    - vendor.pb
+    - vendor.pv
+local_dependencies:
+    - github.com/envoyproxy/protoc-gen-validate/validate/validate.proto@master
+    - google/protobuf/wrappers.proto@master
+external_services:
+    - import: gitlab.ozon.ru/whc/go/service/supply/api/xdock/v1/xdock.proto@b15e293ff240113377e536628a8f9334c14dcb92
+    - import: gitlab.ozon.ru/whc/supplies/service/supply/api/inbound_refuse_reason/inbound_refuse_reason.proto@3369aaa20ecb180700e72384568259f6e641543a
+    - import: gitlab.ozon.ru/whc/supplies/service/supply/api/inbound_cargo_comment/inbound_cargo_comment.proto@6498c3815517adc520da1747ce1e50abf347f0dd

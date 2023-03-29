@@ -1,22 +1,21 @@
-import sys
-
-from parser import ProtoParser, ProtoInfo
-from client import ClientBuilder
-
+from client_builder import ClientBuilder
+from generator import ProtoGenerator
+from parser import ProtoParser
+from proto_info_builder import ProtoInfo
 
 if __name__ == '__main__':
-    py_cli_package_name = 'qa_whc_api_supply_grpc_client'
-    path_to_proto = sys.argv[1]
+    py_cli_package_name: str = 'qa_whc_api_supply_grpc_client'
 
-    parser = ProtoParser()
-    proto_info = ProtoInfo(parser, path_to_proto, py_cli_package_name)
-    print(proto_info.service_name)
-    print(proto_info.package)
-    print(proto_info.imports)
-    print(proto_info.handlers)
-    print(proto_info.path_to_proto)
-    print(proto_info.clear_proto_name)
-    print(proto_info.py_cli_package_name)
+    proto_generator = ProtoGenerator()
+    proto_paths: list = proto_generator.get_proto_paths()
+    proto_generator.create_environment_for_package(py_cli_package_name, proto_paths)
 
-    client_builder = ClientBuilder(proto_info)
-    client_builder.generate_client_for_proto()
+    for path_to_proto in proto_paths:
+        parser = ProtoParser()
+        proto_info = ProtoInfo(parser, path_to_proto, py_cli_package_name)
+
+        proto_generator.get_external_dependencies(proto_info.imports)
+        proto_generator.generate_pb_files(py_cli_package_name, proto_info.full_path_to_proto, proto_info.is_service)
+
+        client_builder = ClientBuilder(proto_info)
+        client_builder.generate_client_for_proto()
