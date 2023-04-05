@@ -1,4 +1,4 @@
-PATH_TO_MIMIR = 'mimir.yaml'
+MIMIR_YAML = 'mimir.yaml'
 
 VENDORS_PROTO = ["google/api/annotations.proto", "google/protobuf/timestamp.proto",
                  "github.com/gogo/protobuf/gogoproto/gogo.proto", "google/protobuf/empty.proto",

@@ -1,3 +1,4 @@
+import constants
 from client_builder import ClientBuilder
 from generator import ProtoGenerator
 from parser import ProtoParser
@@ -7,7 +8,7 @@ if __name__ == '__main__':
     py_cli_package_name: str = 'qa_whc_api_supply_grpc_client'
 
     proto_generator = ProtoGenerator()
-    proto_paths: list = proto_generator.get_proto_paths()
+    proto_paths: list = proto_generator.get_proto_paths(constants.MIMIR_YAML)
     proto_generator.create_environment_for_package(py_cli_package_name, proto_paths)
 
     for path_to_proto in proto_paths:

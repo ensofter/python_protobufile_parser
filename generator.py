@@ -22,16 +22,19 @@ class YamlReader:
 
 class ProtoGenerator(YamlReader):
 
+    def _is_mimir_yaml_exist(self, path_to_mimir: str) -> bool:
+        return exists(path_to_mimir)
+
     def create_environment_for_package(self, package_name: str, proto_paths: list):
         os.makedirs(package_name, exist_ok=True)
         os.makedirs(f'{package_name}_setup', exist_ok=True)
         for path_to_proto in proto_paths:
             self.create_folder_and_copy_proto(package_name, path_to_proto)
 
-    def get_proto_paths(self) -> list:
-        if not exists(constants.PATH_TO_MIMIR):
+    def get_proto_paths(self, path_to_mimir: str) -> list:
+        if not self._is_mimir_yaml_exist(path_to_mimir):
             raise AssertionError('Файл mimir.yaml отсутствует. Возможно это C# сервис')
-        proto_folders: list = self._read_mimir_yaml(constants.PATH_TO_MIMIR)
+        proto_folders: list = self._read_mimir_yaml(path_to_mimir)
         paths: set = set()
         for folder in proto_folders:
             paths_to_proto_files: list = glob.glob(f"{folder}/**/*.proto", recursive=True)
