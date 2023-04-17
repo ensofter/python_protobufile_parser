@@ -40,7 +40,10 @@ class ProtoGenerator(YamlReader):
             paths_to_proto_files: list = glob.glob(f"{folder}/**/*.proto", recursive=True)
             for path in paths_to_proto_files:
                 paths.add(path)
-        return list(paths)
+        if paths:
+            return list(paths)
+        else:
+            raise AssertionError('Нет ни одного пути до протофайла')
 
     def create_folder_and_copy_proto(self, package_name: str, path_to_proto: str):
         dst = f"{package_name}/{path_to_proto}"

@@ -1,6 +1,8 @@
 import glob
 import os
 
+import pytest
+
 from generator import ProtoGenerator
 
 
@@ -21,3 +23,14 @@ class TestGetProtoPaths:
         assert sorted(proto_paths) == sorted(expected_proto_paths)
 
         os.remove(path_to_mimir)
+
+    def test_get_proto_paths_no_paths(self):
+        path_to_mimir = 'mimir.yaml'
+        fp = open(path_to_mimir, 'w')
+        fp.write('proto_paths:\n    - proto_files')
+        fp.close()
+
+        proto_generator = ProtoGenerator()
+        with pytest.raises(AssertionError):
+            proto_generator.get_proto_paths(path_to_mimir)
+
